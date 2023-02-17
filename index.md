@@ -3,6 +3,11 @@
 
 For this project, we were tasked with adapting Alex Gramfort's 1-dimension locally weighted linear regression (LOWESS) function to work for multi-dimensional data. With this page I will highlight my multi-dimensional LOWESS function, as well as how it was made to be SciKitLearn compliant which allowed me to easily validate my output mean square error using K-Fold cross validation. Lastly, I will also demonstrate GridSearchCV, a SciKitLearn function that makes it easy to identify the optimal hyperparameter values.
 
+The following imports are used with various elements of the code fragments and methods in this page, and are included if the reader so desires to run the code themselves.
+``` Python
+
+```
+
 #### Adapting Gramfort's Function to Multiple Dimensions
 
 I began with Gramfort's original function, and changed it as necessary for it to work with increased dimensionality. The main changes were evaluating the distance from each point to every other point using Euclidean distances instead of absolute difference for the distances and weights calculations, and adjusting the computation of the linear regressions to work with matrices, particularly ensuring that the dimensions would be compatible for multiplication and adding L2 regression in case the A matrix is not invertible. I also added clauses for adjusting certain vectors to column vectors where necessary. I also adjusted the calculation of delta to work with multi-dimensional matrices. Lastly, I also added the necessary interpolators at the end to be able to use the model to make predictions. The method itself can be seen below with detailed comments to explain what is happening at each code block:
@@ -92,3 +97,49 @@ def gramfort_lowess_multidimensional(x_train, y_train, x_test, f=2. / 3., iter =
   # Return the estimates based on the new data
   return output
   ```
+  
+  Additional changes from Gramfort's original function include adding a parameter for the 'a' value which is part of the delta calculation, a boolean value for whether to scale the data or not, and a boolean for calculating with or without an intercept.
+  
+  #### Making this function SciKitLearn Compatible
+  
+  I used small, fixed tests to ensure that my method worked and was error free, but for large scale testing I sought to implement my function as a SciKitLearn compliant function to allow for easy use of the K-Fold cross validation technique. The following code allows me to use SciKitLearn functions with my multidimensional LOWESS code: 
+  
+  ``` Python
+  class Gramfort_LOWESS_Multidimensional:
+    def __init__(self, f = 1/4, iter = 3, scale = False, a = 6.0, intercept=True):
+        self.f = f
+        self.iter = iter
+        self.scale = scale
+        self.a = a
+        self.intercept = intercept
+    
+    def fit(self, x, y):
+        f = self.f
+        iter = self.iter
+        scale = self.scale
+        a = self.a
+        intercept = self.intercept
+        self.xtrain_ = x
+        self.yhat_ = y
+
+    def predict(self, x_new):
+        check_is_fitted(self)
+        x = self.xtrain_
+        y = self.yhat_
+        f = self.f
+        iter = self.iter
+        scale = self.scale
+        a = self.a
+        intercept = self.intercept
+        return gramfort_lowess_multidimensional(x, y, x_new, f=f, iter=iter, scale=scale,
+                                                a=a, intercept=intercept)
+
+    def get_params(self, deep=True):
+        return {"f": self.f, "iter": self.iter,"scale":self.scale,"a":self.a,"intercept":self.intercept}
+
+    def set_params(self, **parameters):
+        for parameter, value in parameters.items():
+            setattr(self, parameter, value)
+        return self
+  ```
+  In a nutshell, this code contains the necessary methods to instantiate this 'Gramfort_LOWESS_Multidimensional' class, use it to fit data and make predictions with the previous modeling function, and also allows to user to view and change the parameters. This is all done in a way to make it easy to use K-Fold cross validation to evaluate model quality, and create an overall more usable modeling tool out of this multidimensional LOWESS method.
