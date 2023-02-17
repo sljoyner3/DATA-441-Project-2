@@ -143,3 +143,31 @@ def gramfort_lowess_multidimensional(x_train, y_train, x_test, f=2. / 3., iter =
         return self
   ```
   In a nutshell, this code contains the necessary methods to instantiate this 'Gramfort_LOWESS_Multidimensional' class, use it to fit data and make predictions with the previous modeling function, and also allows to user to view and change the parameters. This is all done in a way to make it easy to use K-Fold cross validation to evaluate model quality, and create an overall more usable modeling tool out of this multidimensional LOWESS method.
+  
+  #### Using K-Fold Cross-Validation to Evaluate Model Quality
+  
+  Using my custom method and the SciKitLearn implementation I used the following code to get a cross validated MSE value for my model tested on the 'cars' dataset. This model uses the engine size, number of cylinders, and car weight to predict the mileage (MPG) of a vehicle. I determined the hyperparameters through smaller, non-validated but quick, tests and then applied them here. I also scaled the values so that large values, like car weight (lbs), did not outweigh engine size and cylinder count. I also left the intercept as true to include this in the calculation.
+  
+  ``` Python
+  cars = pd.read_csv('/content/cars.csv')
+x = cars.loc[:,'CYL':'WGT'].values
+y = cars['MPG'].values
+
+mse_lwr = []
+kf = KFold(n_splits=10,shuffle=True,random_state=1234)
+model_lw = Gramfort_LOWESS_Multidimensional(f=1/8,iter=10,scale=True,a=10.0,intercept=True)
+
+for idxtrain, idxtest in kf.split(x):
+  xtrain = x[idxtrain]
+  ytrain = y[idxtrain]
+  ytest = y[idxtest]
+  xtest = x[idxtest]
+
+  model_lw.fit(xtrain,ytrain)
+  yhat_lw = model_lw.predict(xtest)
+
+  mse_lwr.append(mse(ytest,yhat_lw))
+
+print('Cars Data Locally Weighted Regression K-Fold validated MSE: '+str(np.mean(mse_lwr)))
+  ```
+The output MSE for this was 17.3299 miles per gallon squared. This indicates a decently accurate model that could likely reliably predict a car's MPG within 4 or 5 miles of the true value. The quickest way to improve model results are through fine tuning of the hyperparameters, and this will be discussed below with GridSearchCV.
