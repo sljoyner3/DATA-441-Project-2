@@ -235,7 +235,7 @@ gs_lowess.fit(x, y)
 gs_lowess.best_params_
 ```
 
-The gridsearch has highlighted the following parameter values as ideal: . Plugging these into the otherwise identical K-Fold cross validation as before now yields an improved MSE of , highlighting the usefulness of gridsearch in optimizing hyperparameters of model.
+The gridsearch has highlighted the following parameter values as ideal: f=1/2, iter=1, a=4.0. Plugging these into the otherwise identical K-Fold cross validation as before now yields an improved MSE of 140.4875, highlighting the usefulness of gridsearch in optimizing hyperparameters of model, although a downside of this function is that it is relatively slow and takes a significant amount of time to iterate through all possible sets of hyperparameters.
 
 #### Main Takeaways
 
