@@ -5,7 +5,22 @@ For this project, we were tasked with adapting Alex Gramfort's 1-dimension local
 
 The following imports are used with various elements of the code fragments and methods in this page, and are included if the reader so desires to run the code themselves.
 ``` Python
-
+import numpy as np
+import pandas as pd
+from sklearn.linear_model import LinearRegression, Ridge
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.pipeline import Pipeline
+import scipy.stats as stats 
+from sklearn.model_selection import train_test_split as tts, KFold, GridSearchCV
+from sklearn.metrics import mean_squared_error as mse
+from scipy.interpolate import interp1d, griddata, LinearNDInterpolator, NearestNDInterpolator
+from math import ceil
+from scipy import linalg
+import scipy.stats as stats
+# Needed to make SciKitLearn compliant function
+from sklearn.base import BaseEstimator, RegressorMixin
+from sklearn.utils.validation import check_X_y, check_array, check_is_fitted
 ```
 
 #### Adapting Gramfort's Function to Multiple Dimensions
@@ -102,7 +117,7 @@ def gramfort_lowess_multidimensional(x_train, y_train, x_test, f=2. / 3., iter =
   
   #### Making this function SciKitLearn Compatible
   
-  I used small, fixed tests to ensure that my method worked and was error free, but for large scale testing I sought to implement my function as a SciKitLearn compliant function to allow for easy use of the K-Fold cross validation technique. The following code allows me to use SciKitLearn functions with my multidimensional LOWESS code: 
+  I used small, fixed tests with a subset of the cars data to ensure that my method worked and was error free, but for large scale testing I sought to implement my function as a SciKitLearn compliant function to allow for easy use of the K-Fold cross validation technique. The following code allows me to use SciKitLearn functions with my multidimensional LOWESS code: 
   
   ``` Python
   class Gramfort_LOWESS_Multidimensional:
@@ -146,7 +161,7 @@ def gramfort_lowess_multidimensional(x_train, y_train, x_test, f=2. / 3., iter =
   
   #### Using K-Fold Cross-Validation to Evaluate Model Quality
   
-  Using my custom method and the SciKitLearn implementation I used the following code to get a cross validated MSE value for my model tested on the 'cars' dataset. This model uses the engine size, number of cylinders, and car weight to predict the mileage (MPG) of a vehicle. I determined the hyperparameters through smaller, non-validated but quick, tests and then applied them here. I also scaled the values so that large values, like car weight (lbs), did not outweigh engine size and cylinder count. I also left the intercept as true to include this in the calculation.
+  Using my custom method and the SciKitLearn implementation I used the following code to get a cross validated MSE score for my model tested on the 'cars' dataset. This model uses the engine size, number of cylinders, and car weight to predict the mileage (MPG) of a vehicle. I determined the hyperparameters through smaller, non-validated but quick, tests and then applied them here. I also scaled the values so that large values, like car weight (lbs), did not outweigh engine size and cylinder count. I also left the intercept as true to include this in the calculation.
   
   ``` Python
   cars = pd.read_csv('/content/cars.csv')
@@ -198,9 +213,31 @@ The validated MSE for this data with the parameters above was 145.1976, which is
 
 #### Gridsearch
 
-To make this easier, there is a SkiLearnFunction called GridSearchCV. This function allows for one to define their data pipeline and a range of values for parameters, and the gridsearch will iterate through and try various parameter combinations to identify the optimal values. A demonstration of this can be seen with the code below for the concrete dataset:
+To make this easier, there is a SkiLearnFunction called GridSearchCV. This function allows for one to define their data pipeline and a range of values for parameters, and the gridsearch will iterate through and try various parameter combinations to identify the optimal values. A demonstration of this can be seen with the code below for the concrete dataset, where I will test values around the hyperparameters I began with to see if a more optimal set of values exists:
 
 ```Python
+concrete = pd.read_csv('/content/concrete.csv')
+x = concrete.loc[:,'cement':'water'].values
+y = concrete['strength'].values
+
+lwr_pipe = Pipeline([('zscores', StandardScaler()),
+                     ('lwr', Gramfort_LOWESS_Multidimensional())])
+
+params = [{'lwr__f': [1/i for i in range(2,8,2)],
+           'lwr__iter': [1,3,5],
+           'lwr__a': [4,6,8]}]
+
+gs_lowess = GridSearchCV(lwr_pipe,
+                         param_grid=params,
+                         scoring='neg_mean_squared_error',
+                         cv=4)
+gs_lowess.fit(x, y)
+gs_lowess.best_params_
 ```
 
+The gridsearch has highlighted the following parameter values as ideal: . Plugging these into the otherwise identical K-Fold cross validation as before now yields an improved MSE of , highlighting the usefulness of gridsearch in optimizing hyperparameters of model.
+
+#### Main Takeaways
+
+I was able to modify Gramfort's LOWESS to work with multidimensional datasets by reworking some of the key mathematical and updating portions of the method. I was then able to implement this as a SciKitLearn compliant function that made it easy to test the model with K-Fold cross validations and use GridSearchCV to identify the optimal hyperparameters. I used the cars and concrete datasets to highlight the K-Fold and gridsearch implementations with real multidimensional data.
 
