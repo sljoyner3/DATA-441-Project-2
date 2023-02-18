@@ -170,4 +170,37 @@ for idxtrain, idxtest in kf.split(x):
 
 print('Cars Data Locally Weighted Regression K-Fold validated MSE: '+str(np.mean(mse_lwr)))
   ```
-The output MSE for this was 17.3299 miles per gallon squared. This indicates a decently accurate model that could likely reliably predict a car's MPG within 4 or 5 miles of the true value. The quickest way to improve model results are through fine tuning of the hyperparameters, and this will be discussed below with GridSearchCV.
+The output MSE for this was 17.3299 miles per gallon squared. This indicates a decently accurate model that could likely reliably predict a car's MPG within 4 or 5 miles of the true value. Another example of this model is below, with the concrete dataset where some of the ingredients and properties of concrete are used to predict its strength:
+
+``` Python
+concrete = pd.read_csv('/content/concrete.csv')
+x = concrete.loc[:,'cement':'water'].values
+y = concrete['strength'].values
+
+mse_lwr = []
+kf = KFold(n_splits=4,shuffle=True,random_state=1234)
+model_lw = Gramfort_LOWESS_Multidimensional(f=1/4,iter=3,scale=False,a=6.0,intercept=True)
+
+for idxtrain, idxtest in kf.split(x):
+  xtrain = x[idxtrain]
+  ytrain = y[idxtrain]
+  ytest = y[idxtest]
+  xtest = x[idxtest]
+
+  model_lw.fit(xtrain,ytrain)
+  yhat_lw = model_lw.predict(xtest)
+
+  mse_lwr.append(mse(ytest,yhat_lw))
+
+print('Concrete Data Locally Weighted Regression K-Fold validated MSE: '+str(np.mean(mse_lwr)))
+```
+The validated MSE for this data with the parameters above was 145.1976, which is not bad, but seems to have room for improvement. The best way to improve the results are by tuning the hyperparameters, but this can be a daunting task to know how to change the values to improve the model.
+
+#### Gridsearch
+
+To make this easier, there is a SkiLearnFunction called GridSearchCV. This function allows for one to define their data pipeline and a range of values for parameters, and the gridsearch will iterate through and try various parameter combinations to identify the optimal values. A demonstration of this can be seen with the code below for the concrete dataset:
+
+```Python
+```
+
+
